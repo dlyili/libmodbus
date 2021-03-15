@@ -5,13 +5,17 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
+//#include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <modbus.h>
 
 #include "unit-test.h"
+
+#ifdef _WIN32
+#define usleep Sleep
+#endif
 
 const int EXCEPTION_RC = 2;
 
@@ -28,14 +32,14 @@ int send_crafted_request(modbus_t *ctx, int function,
                          int backend_length, int backend_offset);
 int equal_dword(uint16_t *tab_reg, const uint32_t value);
 
-#define BUG_REPORT(_cond, _format, _args ...) \
-    printf("\nLine %d: assertion error for '%s': " _format "\n", __LINE__, # _cond, ## _args)
+#define BUG_REPORT(_cond, _format, ...) \
+    printf("\nLine %d: assertion error for '%s': " _format "\n", __LINE__, # _cond, ## __VA_ARGS__)
 
-#define ASSERT_TRUE(_cond, _format, __args...) {  \
+#define ASSERT_TRUE(_cond, _format, ...) {  \
     if (_cond) {                                  \
         printf("OK\n");                           \
     } else {                                      \
-        BUG_REPORT(_cond, _format, ## __args);    \
+        BUG_REPORT(_cond, _format, ## __VA_ARGS__);    \
         goto close;                               \
     }                                             \
 };
@@ -95,8 +99,8 @@ int main(int argc, char *argv[])
     }
     modbus_set_debug(ctx, TRUE);
     modbus_set_error_recovery(ctx,
-                              MODBUS_ERROR_RECOVERY_LINK |
-                              MODBUS_ERROR_RECOVERY_PROTOCOL);
+                              (modbus_error_recovery_mode)(MODBUS_ERROR_RECOVERY_LINK |
+                              MODBUS_ERROR_RECOVERY_PROTOCOL));
 
     if (use_backend == RTU) {
         modbus_set_slave(ctx, SERVER_ID);
