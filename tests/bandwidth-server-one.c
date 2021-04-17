@@ -52,10 +52,12 @@ int main(int argc, char *argv[])
         modbus_tcp_accept(ctx, &s);
 
     } else {
-        ctx = modbus_new_rtu("/dev/ttyUSB0", 115200, 'N', 8, 1);
+        ctx = modbus_new_rtu("COM2", 115200, 'N', 8, 1, 0);///dev/ttyUSB0
         modbus_set_slave(ctx, 1);
         modbus_connect(ctx);
     }
+
+    modbus_set_debug(ctx, TRUE);
 
     mb_mapping = modbus_mapping_new(MODBUS_MAX_READ_BITS, 0,
                                     MODBUS_MAX_READ_REGISTERS, 0);

@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
     if (use_backend == TCP) {
         ctx = modbus_new_tcp("127.0.0.1", 1502);
     } else {
-        ctx = modbus_new_rtu("/dev/ttyUSB1", 115200, 'N', 8, 1);
+        ctx = modbus_new_rtu("COM3", 115200, 'N', 8, 1, 0);//dev/ttyUSB1
         modbus_set_slave(ctx, 1);
     }
     if (modbus_connect(ctx) == -1) {
@@ -80,6 +80,8 @@ int main(int argc, char *argv[])
         modbus_free(ctx);
         return -1;
     }
+
+    modbus_set_debug(ctx, TRUE);
 
     /* Allocate and initialize the memory to store the status */
     tab_bit = (uint8_t *) malloc(MODBUS_MAX_READ_BITS * sizeof(uint8_t));

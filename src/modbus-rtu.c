@@ -271,8 +271,18 @@ static ssize_t _modbus_rtu_send(modbus_t *ctx, const uint8_t *req, int req_lengt
 {
 #if defined(_WIN32)
     modbus_rtu_t *ctx_rtu = ctx->backend_data;
-    DWORD n_bytes = 0;
-    return (WriteFile(ctx_rtu->w_ser.fd, req, req_length, &n_bytes, NULL)) ? (ssize_t)n_bytes : -1;
+    //edit by jjj
+    if (ctx_rtu->use_buffer)
+    {
+        memcpy(ctx_rtu->write_buf, req, req_length);
+        ctx_rtu->n_write_bytes = req_length;
+        return ctx_rtu->n_write_bytes;
+    }
+    else
+    {
+        DWORD n_bytes = 0;
+        return (WriteFile(ctx_rtu->w_ser.fd, req, req_length, &n_bytes, NULL)) ? (ssize_t)n_bytes : -1;
+    }
 #else
 #if HAVE_DECL_TIOCM_RTS
     modbus_rtu_t *ctx_rtu = ctx->backend_data;
@@ -1151,10 +1161,31 @@ static int _modbus_rtu_flush(modbus_t *ctx)
 static int _modbus_rtu_select(modbus_t *ctx, fd_set *rset,
                               struct timeval *tv, int length_to_read)
 {
+    modbus_rtu_t * rtu_ctx = (modbus_rtu_t *)ctx->backend_data;
     int s_rc;
 #if defined(_WIN32)
-    s_rc = win32_ser_select(&((modbus_rtu_t *)ctx->backend_data)->w_ser,
-                            length_to_read, tv);
+    //edit by jjj
+    if (rtu_ctx->use_buffer)
+    {
+        unsigned int n = rtu_ctx->n_read_bytes;
+        if (length_to_read < n) {
+            n = length_to_read;
+        }
+        if (n > 0) {
+            memcpy(rtu_ctx->w_ser.buf, rtu_ctx->read_buf, n);
+        }
+        rtu_ctx->n_read_bytes -= n;
+        if (rtu_ctx->n_read_bytes > 0)
+        {
+            memcpy(rtu_ctx->read_buf, &(rtu_ctx->read_buf[n]), rtu_ctx->n_read_bytes);
+        }
+    }
+    else
+    {
+        s_rc = win32_ser_select(&rtu_ctx->w_ser,
+            length_to_read, tv);
+    }
+    
     if (s_rc == 0) {
         errno = ETIMEDOUT;
         return -1;
@@ -1220,7 +1251,7 @@ const modbus_backend_t _modbus_rtu_backend = {
 
 modbus_t* modbus_new_rtu(const char *device,
                          int baud, char parity, int data_bit,
-                         int stop_bit)
+                         int stop_bit, int use_buffer)
 {
     modbus_t *ctx;
     modbus_rtu_t *ctx_rtu;
@@ -1253,6 +1284,8 @@ modbus_t* modbus_new_rtu(const char *device,
         return NULL;
     }
     ctx_rtu = (modbus_rtu_t *)ctx->backend_data;
+    //edit by jjj
+    ctx_rtu->use_buffer = use_buffer;
 
     /* Device name and \0 */
     ctx_rtu->device = (char *)malloc((strlen(device) + 1) * sizeof(char));

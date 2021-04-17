@@ -71,6 +71,15 @@ typedef struct _modbus_rtu {
 #endif
     /* To handle many slaves on the same link */
     int confirmation_to_ignore;
+
+    //////////////////////////////////////////////////////////////////////////
+    //add by jjj
+    int use_buffer;
+    uint8_t read_buf[PY_BUF_SIZE];     
+    uint8_t write_buf[PY_BUF_SIZE];
+    uint8_t n_read_bytes;
+    uint8_t n_write_bytes;
+    //////////////////////////////////////////////////////////////////////////
 } modbus_rtu_t;
 
 #endif /* MODBUS_RTU_PRIVATE_H */
