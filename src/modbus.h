@@ -169,6 +169,14 @@ typedef struct _modbus_mapping_t {
     uint16_t *tab_registers;
 } modbus_mapping_t;
 
+typedef struct _modbus_request_t {
+    int slave;
+    int function;
+    int address;
+    int nb;
+    int mapping_address;
+} modbus_request_t;
+
 typedef enum
 {
     MODBUS_ERROR_RECOVERY_NONE          = 0,
@@ -237,6 +245,8 @@ MODBUS_API int modbus_reply(modbus_t *ctx, const uint8_t *req,
                             int req_length, modbus_mapping_t *mb_mapping);
 MODBUS_API int modbus_reply_exception(modbus_t *ctx, const uint8_t *req,
                                       unsigned int exception_code);
+
+MODBUS_API int modbus_parse_request(modbus_t *ctx, uint8_t *req, modbus_mapping_t *mb_mapping, modbus_request_t *req_info);
 
 /**
  * UTILS FUNCTIONS

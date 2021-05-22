@@ -1037,6 +1037,75 @@ int modbus_reply_exception(modbus_t *ctx, const uint8_t *req,
     }
 }
 
+
+int modbus_parse_request(modbus_t *ctx, uint8_t *req, modbus_mapping_t *mb_mapping, modbus_request_t *req_info)
+{
+    int offset = 0;
+    if (ctx == NULL || req == NULL || mb_mapping == NULL || req_info == NULL)
+    {
+        return -1;
+    }
+
+    offset = ctx->backend->header_length;
+    req_info->slave = req[offset - 1];
+    req_info->function = req[offset];
+    req_info->address = (req[offset + 1] << 8) + req[offset + 2];
+    req_info->nb = (req[offset + 3] << 8) + req[offset + 4];
+    
+    switch (req_info->function) 
+    {
+    case MODBUS_FC_READ_COILS:
+    case MODBUS_FC_READ_DISCRETE_INPUTS: 
+        {
+            unsigned int is_input = (req_info->function == MODBUS_FC_READ_DISCRETE_INPUTS);
+            int start_bits = is_input ? mb_mapping->start_input_bits : mb_mapping->start_bits;
+            int nb_bits = is_input ? mb_mapping->nb_input_bits : mb_mapping->nb_bits;
+            uint8_t *tab_bits = is_input ? mb_mapping->tab_input_bits : mb_mapping->tab_bits;
+            /* The mapping can be shifted to reduce memory consumption and it
+            doesn't always start at address zero. */
+            req_info->mapping_address = req_info->address - start_bits;
+
+            if (req_info->nb < 1 || MODBUS_MAX_READ_BITS < req_info->nb) 
+            {
+                return -1;
+            } 
+            else if (req_info->mapping_address < 0 || (req_info->mapping_address + req_info->nb) > nb_bits) 
+            {
+                return -1;
+            }
+        }
+        break;
+    case MODBUS_FC_READ_HOLDING_REGISTERS:
+    case MODBUS_FC_READ_INPUT_REGISTERS:
+        {
+            unsigned int is_input = (req_info->function == MODBUS_FC_READ_INPUT_REGISTERS);
+            int start_registers = is_input ? mb_mapping->start_input_registers : mb_mapping->start_registers;
+            int nb_registers = is_input ? mb_mapping->nb_input_registers : mb_mapping->nb_registers;
+            uint16_t *tab_registers = is_input ? mb_mapping->tab_input_registers : mb_mapping->tab_registers;
+            /* The mapping can be shifted to reduce memory consumption and it
+            doesn't always start at address zero. */
+            req_info->mapping_address = req_info->address - start_registers;
+
+            if (req_info->nb < 1 || MODBUS_MAX_READ_REGISTERS < req_info->nb) 
+            {
+                return -1;
+            } 
+            else if (req_info->mapping_address < 0 || (req_info->mapping_address + req_info->nb) > nb_registers) 
+            {
+                return -1;
+            }
+        }
+        break;
+
+        //TODO:
+
+    default:
+        return -1;
+    }
+        
+    return 1;
+}
+
 /* Reads IO status */
 static int read_io_status(modbus_t *ctx, int function,
                           int addr, int nb, uint8_t *dest)

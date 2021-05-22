@@ -13,6 +13,7 @@
 #include <errno.h>
 
 #include <modbus.h>
+#include <modbus-private.h>
 
 #if defined(_WIN32)
 #define close closesocket
@@ -23,8 +24,21 @@ enum {
     RTU
 };
 
+#define TEST_COUNT 2
+
 int main(int argc, char *argv[])
 {
+    //////////////////////////////////////////////////////////////////////////
+    int i = 0;
+    modbus_request_t header;
+    int index = 0;
+    uint8_t test_data[TEST_COUNT][8] = 
+    {
+        {0x01, 0x01, 0x00, 0x00, 0x07, 0xD0, 0x3F, 0xA6},
+        {0x01, 0x03, 0x00, 0x00, 0x00, 0x7D, 0x85, 0xEB}
+    };
+    //////////////////////////////////////////////////////////////////////////
+
     int s = -1;
     modbus_t *ctx = NULL;
     modbus_mapping_t *mb_mapping = NULL;
@@ -71,12 +85,52 @@ int main(int argc, char *argv[])
     for(;;) {
         uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
 
+        modbus_rtu_set_buffer(ctx, test_data[index], 8);
+        
         rc = modbus_receive(ctx, query);
-        if (rc > 0) {
-            modbus_reply(ctx, query, rc, mb_mapping);
-        } else if (rc  == -1) {
+        if (rc > 0) 
+        {
+            modbus_parse_request(ctx, query, mb_mapping, &header);
+            if (header.function == MODBUS_FC_READ_COILS)
+            {
+                for (i = header.mapping_address; i < header.mapping_address + header.nb; i++) 
+                {
+                    mb_mapping->tab_bits[i] = (i %8 == 0 ? ON : OFF);
+                }
+            }
+            else if (header.function == MODBUS_FC_READ_DISCRETE_INPUTS)
+            {
+                for (i = header.mapping_address; i < header.mapping_address + header.nb; i++) 
+                {
+                    mb_mapping->tab_input_bits[i] = i;
+                }
+            }
+            else if (header.function == MODBUS_FC_READ_HOLDING_REGISTERS)
+            {
+                for (i = header.mapping_address; i < header.mapping_address + header.nb; i++) 
+                {
+                    mb_mapping->tab_registers[i] = i;
+                }
+            }
+            else if (header.function == MODBUS_FC_READ_INPUT_REGISTERS)
+            {
+                for (i = header.mapping_address; i < header.mapping_address + header.nb; i++) 
+                {
+                    mb_mapping->tab_input_registers[i] = i;
+                }
+            }
+            rc = modbus_reply(ctx, query, rc, mb_mapping);
+        } 
+        else if (rc  == -1) 
+        {
             /* Connection closed by the client or error */
             break;
+        }
+
+        index++;
+        if (index >= TEST_COUNT)
+        {
+            index = 0;
         }
     }
 

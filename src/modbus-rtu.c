@@ -1096,6 +1096,23 @@ int modbus_rtu_get_rts_delay(modbus_t *ctx)
     }
 }
 
+
+int modbus_rtu_set_buffer(modbus_t *ctx, const void* buffer, uint8_t bytes)
+{
+    modbus_rtu_t *ctx_rtu = NULL;
+    if (ctx == NULL || buffer == NULL || bytes == 0 || bytes > PY_BUF_SIZE) 
+    {
+        errno = EINVAL;
+        return -1;
+    }
+    
+    ctx_rtu = (modbus_rtu_t*)ctx->backend_data;
+    ctx_rtu->n_read_bytes = bytes;
+    memcpy(ctx_rtu->read_buf, buffer, bytes);
+
+    return 1;
+}
+
 int modbus_rtu_set_rts_delay(modbus_t *ctx, int us)
 {
     if (ctx == NULL || us < 0) {
@@ -1167,18 +1184,22 @@ static int _modbus_rtu_select(modbus_t *ctx, fd_set *rset,
     //edit by jjj
     if (rtu_ctx->use_buffer)
     {
-        unsigned int n = rtu_ctx->n_read_bytes;
-        if (length_to_read < n) {
+        int n = rtu_ctx->n_read_bytes;
+        if (length_to_read < n) 
+        {
             n = length_to_read;
         }
-        if (n > 0) {
+        if (n > 0) 
+        {
             memcpy(rtu_ctx->w_ser.buf, rtu_ctx->read_buf, n);
+            rtu_ctx->w_ser.n_bytes = n;
         }
         rtu_ctx->n_read_bytes -= n;
         if (rtu_ctx->n_read_bytes > 0)
         {
             memcpy(rtu_ctx->read_buf, &(rtu_ctx->read_buf[n]), rtu_ctx->n_read_bytes);
         }
+        s_rc = n;
     }
     else
     {
