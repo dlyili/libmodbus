@@ -1315,6 +1315,13 @@ modbus_new_rtu(const char *device, int baud, char parity, int data_bit, int stop
     ctx_rtu = (modbus_rtu_t *) ctx->backend_data;
 	//edit by jjj
 	ctx_rtu->use_buffer = use_buffer;
+    ctx_rtu->n_read_bytes = 0;
+	ctx_rtu->n_write_bytes = 0;
+#if defined(_WIN32)
+	ctx_rtu->w_ser.n_bytes = 0;
+#else
+	ctx_rtu->n_bytes = 0;
+#endif
 
     /* Device name and \0 */
     ctx_rtu->device = (char *) malloc((strlen(device) + 1) * sizeof(char));
