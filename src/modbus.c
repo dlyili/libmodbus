@@ -1229,7 +1229,7 @@ int modbus_reply_exception(modbus_t *ctx, const uint8_t *req, unsigned int excep
 int modbus_parse_request(modbus_t* ctx, uint8_t* req, modbus_mapping_t* mb_mapping, modbus_request_t* req_info)
 {
     int offset = 0;
-    if (ctx == NULL || req == NULL || mb_mapping == NULL || req_info == NULL)
+    if (ctx == NULL || req == NULL || req_info == NULL)
     {
         return -1;
     }
@@ -1239,6 +1239,11 @@ int modbus_parse_request(modbus_t* ctx, uint8_t* req, modbus_mapping_t* mb_mappi
     req_info->function = req[offset];
     req_info->address = (req[offset + 1] << 8) + req[offset + 2];
     req_info->nb = (req[offset + 3] << 8) + req[offset + 4];
+
+    if (mb_mapping == NULL)
+    {
+        return 1;
+    }
 
     switch (req_info->function)
     {

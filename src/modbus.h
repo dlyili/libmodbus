@@ -303,6 +303,10 @@ MODBUS_API int modbus_disable_quirks(modbus_t *ctx, unsigned int quirks_mask);
     (((int32_t) tab_int16[(index)] << 16) | (int32_t) tab_int16[(index) + 1])
 #define MODBUS_GET_INT16_FROM_INT8(tab_int8, index) \
     (((int16_t) tab_int8[(index)] << 8) | (int16_t) tab_int8[(index) + 1])
+//add by jjj
+#define MODBUS_GET_INT32_FROM_INT8(tab_int8, index) \
+    (((int32_t) tab_int8[(index)] << 24) | ((int32_t) tab_int8[(index) + 1] << 16) | \
+     ((int32_t) tab_int8[(index) + 2 ] << 8) | (int32_t) tab_int8[(index) + 3])
 #define MODBUS_SET_INT16_TO_INT8(tab_int8, index, value)            \
     do {                                                            \
         ((int8_t *) (tab_int8))[(index)] = (int8_t) ((value) >> 8); \
