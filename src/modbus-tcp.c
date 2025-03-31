@@ -14,6 +14,8 @@
 # endif
 #endif
 
+//add by jjj
+#include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
